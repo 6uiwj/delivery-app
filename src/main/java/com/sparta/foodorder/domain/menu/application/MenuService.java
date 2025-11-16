@@ -1,16 +1,34 @@
 package com.sparta.foodorder.domain.menu.application;
 
 import com.sparta.foodorder.domain.auth.infrastructure.CustomUserDetails;
-import com.sparta.foodorder.domain.menu.domain.*;
-import com.sparta.foodorder.domain.menu.presentation.dto.*;
+import com.sparta.foodorder.domain.menu.domain.Menu;
+import com.sparta.foodorder.domain.menu.domain.MenuRepository;
+import com.sparta.foodorder.domain.menu.domain.Option;
+import com.sparta.foodorder.domain.menu.domain.OptionRepository;
+import com.sparta.foodorder.domain.menu.domain.OptionValue;
+import com.sparta.foodorder.domain.menu.domain.OptionValueRepository;
+import com.sparta.foodorder.domain.menu.presentation.dto.MenuCreateRequestDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.MenuResponseDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.MenuSearchResponseDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.MenuUpdateRequestDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.OptionCreateRequestDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.OptionResponseDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.OptionUpdateRequestDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.OptionValueCreateRequestDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.OptionValueResponseDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.OptionValueUpdateRequestDto;
 import com.sparta.foodorder.domain.store.domain.Store;
 import com.sparta.foodorder.domain.store.domain.StoreRepository;
-import com.sparta.foodorder.domain.store.domain.StoreService;
 import com.sparta.foodorder.domain.user.domain.UserRole;
 import com.sparta.foodorder.global.dto.PagedResponse;
 import com.sparta.foodorder.global.exception.BusinessException;
 import com.sparta.foodorder.global.exception.ErrorCode;
 import jakarta.validation.Valid;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -19,11 +37,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -444,9 +457,32 @@ public class MenuService {
             if(!menu.getStore().getId().equals(store.getId())) {
                 throw new BusinessException(ErrorCode.MENU_NOT_FOUND);
             }
+
+            //menuId로 메뉴에 대한 옵션들을 검색하고, 그 옵션들에 대한옵션값들을 검색해서 논리삭제후, 옵션들 논리삭제 -> 메뉴 논리삭제
+            //옵션 id 가져오기
+            List<UUID> optionIdList = optionRepository.findAllByMenuId(menuId).stream().map(Option::getId)
+                    .toList();
+
+            //옵션 값 논리삭제
+            List<OptionValue> optionValues = new ArrayList<>();
+
+            for(UUID optionId : optionIdList) {
+                List<OptionValue> values = optionValueRepository.findAllByOptionId(optionId);
+                optionValues.addAll(values);
+            }
+            optionValues.forEach(optionValue -> optionValue.delete(username));
+            optionValueRepository.saveAll(optionValues);
+
+            //옵션 논리 삭제
+            List<Option> optionList = optionRepository.findAllByMenuId(menuId);
+            optionList.forEach(option -> option.delete(username));
+            optionRepository.saveAll(optionList);
+
+            //메뉴 논리 삭제
             menu.deleteMenu(username);
             menuRepository.save(menu);
         }
+
         UUID storeId = menu.getStore().getId();
         Store store =  storeRepository.findById(storeId).orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
         //해당 가게의 메뉴자 맞는지 확인
