@@ -28,6 +28,11 @@ public class OptionValueRepositoryImpl implements OptionValueRepository {
     }
 
     @Override
+    public List<OptionValue> saveAll(List<OptionValue> optionValues) {
+        return optionValueJpaRepository.saveAll(optionValues);
+    }
+
+    @Override
     public List<OptionValue> findAllByOptionId(UUID optionId) {
         return optionValueJpaRepository.findAllByOptionId(optionId);
     }

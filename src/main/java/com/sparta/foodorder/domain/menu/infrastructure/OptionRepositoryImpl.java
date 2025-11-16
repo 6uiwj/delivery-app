@@ -49,4 +49,9 @@ public class OptionRepositoryImpl implements OptionRepository {
         return optionJpaRepository.findAllByMenuIdAndDeletedAtIsNull(menuId);
     }
 
+    @Override
+    public List<Option> saveAll(List<Option> optionList) {
+        return optionJpaRepository.saveAll(optionList);
+    }
+
 }

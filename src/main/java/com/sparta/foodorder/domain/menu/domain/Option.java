@@ -25,7 +25,7 @@ public class Option extends BaseEntity {
     @JoinColumn(name = "menu_id", nullable = false)
     private Menu menu;
 
-    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, mappedBy = "option")
+    @OneToMany(fetch = FetchType.LAZY)
     private List<OptionValue> optionValues;
 
 

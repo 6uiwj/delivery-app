@@ -22,5 +22,6 @@ public interface OptionRepository {
     boolean existsByIdAndMenuIdAndDeletedAtIsNull(UUID optionId, UUID menuId);
 
     List<Option> findAllByMenuIdAndDeletedAtIsNull(UUID menuId);
-    
+
+    List<Option> saveAll(List<Option> optionList);
 }

@@ -10,6 +10,8 @@ public interface OptionValueRepository {
 
     OptionValue save(OptionValue optionValue);
 
+    List<OptionValue> saveAll(List<OptionValue> optionValues);
+
     List<OptionValue> findAllByOptionId(UUID optionId);
 
     List<OptionValue> findAllByOptionIdAndDeletedAtIsNull(UUID optionId);
