@@ -31,6 +31,8 @@ import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -48,6 +50,8 @@ public class MenuService {
     private final OptionValueRepository optionValueRepository;
     private final StoreRepository storeRepository;
 
+    @CacheEvict(value = "menus", allEntries = true)
+    @Transactional
     public MenuResponseDto insertMenu(MenuCreateRequestDto requestDto, CustomUserDetails userDetails) {
         Long userId = userDetails.getUserId();
         boolean isOwner = storeRepository.findByOwnerId(userId).isPresent();
@@ -95,6 +99,8 @@ public class MenuService {
 
     }
 
+
+    @CacheEvict(value = "menus", allEntries = true)
     @Transactional
     public MenuResponseDto createOption(OptionCreateRequestDto requestDto, UUID menuId, CustomUserDetails userDetails) {
         Long userId = userDetails.getUserId();
@@ -139,6 +145,7 @@ public class MenuService {
         return saveOption(menu, requestDto);
     }
 
+    @CacheEvict(value = "menus", allEntries = true)
     public OptionValueResponseDto createOptionValue(OptionValueCreateRequestDto optionValueCreateRequestDto,UUID menuId, UUID optionId, CustomUserDetails userDetails) {
         Long userId = userDetails.getUserId();
         boolean isOwner = storeRepository.findByOwnerId(userId).isPresent();
@@ -162,7 +169,7 @@ public class MenuService {
             if (!menu.getStore().getId().equals(store.getId())) {
                 throw new BusinessException(ErrorCode.MENU_NOT_FOUND);
             }
-            OptionValue optionValue = optionValueCreateRequestDto.toEntity(option);
+            OptionValue optionValue = optionValueCreateRequestDto.toEntity();
 
             return OptionValueResponseDto.from(optionValueRepository.save(optionValue));
         }
@@ -172,14 +179,18 @@ public class MenuService {
             throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
         }
 
-        OptionValue optionValue = optionValueCreateRequestDto.toEntity(option);
+        OptionValue optionValue = optionValueCreateRequestDto.toEntity();
 
         return OptionValueResponseDto.from(optionValueRepository.save(optionValue));
 
 
     }
 
-
+    @Cacheable(
+        value = "menus",
+        key = "#storeId + ':' + #userDetails.role + ':' + #userDetails.userId",
+        unless = "#result == null || #result.isEmpty()"
+    )
     @Transactional(readOnly = true)
     public List<MenuResponseDto> getMenus(CustomUserDetails userDetails, UUID storeId) {
         Long userId = userDetails.getUserId();
@@ -363,7 +374,7 @@ public class MenuService {
 
     }
 
-
+    @CacheEvict(value = "menus", key = "#storeId + '*'")
     public MenuResponseDto updateMenu(UUID menuId, @Valid MenuUpdateRequestDto requestDto, CustomUserDetails userDetails) {
 
         Long userId = userDetails.getUserId();
@@ -434,6 +445,7 @@ public class MenuService {
 
     }
 
+    @CacheEvict(value = "menus", allEntries = true)
     public void deleteMenu(UUID menuId, CustomUserDetails userDetails) {
         Long userId = userDetails.getUserId();
         boolean isOwner = storeRepository.findByOwnerId(userId).isPresent();
@@ -529,6 +541,8 @@ public class MenuService {
         return PagedResponse.success(menuSearchResponseDtoList, page, size, hasNext);
     }
 
+
+    @CacheEvict(value = "menus", allEntries = true)
     @Transactional
     public OptionResponseDto updateOption(
             OptionUpdateRequestDto requestDto,
@@ -544,6 +558,8 @@ public class MenuService {
         return OptionResponseDto.from(option);
     }
 
+
+    @CacheEvict(value = "menus", allEntries = true)
     @Transactional
     public void deleteOption(UUID menuId, UUID optionId, Long userId, String email) {
         Menu menu = getValidMenu(menuId);
@@ -554,6 +570,7 @@ public class MenuService {
         option.delete(email);
     }
 
+    @CacheEvict(value = "menus", allEntries = true)
     @Transactional
     public OptionValueResponseDto updateOptionValue(
             OptionValueUpdateRequestDto requestDto,
@@ -571,6 +588,7 @@ public class MenuService {
         return OptionValueResponseDto.from(optionValue);
     }
 
+    @CacheEvict(value = "menus", allEntries = true)
     @Transactional
     public void deleteOptionValue(
             UUID menuId, UUID optionId, UUID optionValueId, Long userId,
@@ -626,7 +644,7 @@ public class MenuService {
     }
 
     private MenuResponseDto saveOption(Menu menu, OptionCreateRequestDto requestDto) {
-        Option option = requestDto.toEntity(menu);
+        Option option = requestDto.toEntity();
         menu.getOptions().add(option);
         menuRepository.saveAndFlush(menu);
         return MenuResponseDto.from(menu);

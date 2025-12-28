@@ -25,7 +25,7 @@ public class Option extends BaseEntity {
     @JoinColumn(name = "menu_id", nullable = false)
     private Menu menu;
 
-    @OneToMany(fetch = FetchType.LAZY)
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private List<OptionValue> optionValues;
 
 
@@ -33,15 +33,32 @@ public class Option extends BaseEntity {
     private String name;
 
     @Builder
-    public Option(Menu menu, String name,  List<OptionValue> optionValues) {
-        this.menu = menu;
+    public Option(String name,  List<OptionValue> optionValues) {
         this.name = name;
         this.optionValues = optionValues != null ? optionValues : new ArrayList<>();
 
     }
 
-    public static Option create(Menu menu, String name, List<OptionValue> optionValues) {
-        return new Option(menu, name, optionValues);
+    public static Option create(String name, List<OptionValue> optionValues) {
+        Option option = new Option(name, new ArrayList<>());
+
+        for(OptionValue optionValue : optionValues) {
+            option.addOptionValue(optionValue);
+        }
+
+        return option;
+    }
+
+    private void addOptionValue(OptionValue optionValue) {
+        if (optionValues == null) {
+            optionValues = new ArrayList<>();
+        }
+        optionValues.add(optionValue);
+        optionValue.setOption(this);
+    }
+
+    public void setMenu(Menu menu) {
+        this.menu = menu;
     }
 
     public void updateOption(String name) {

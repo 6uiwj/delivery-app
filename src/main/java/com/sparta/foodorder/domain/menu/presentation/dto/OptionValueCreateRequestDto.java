@@ -1,6 +1,5 @@
 package com.sparta.foodorder.domain.menu.presentation.dto;
 
-import com.sparta.foodorder.domain.menu.domain.Option;
 import com.sparta.foodorder.domain.menu.domain.OptionValue;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
@@ -16,9 +15,8 @@ public class OptionValueCreateRequestDto {
 
     Integer addPrice;
 
-    public OptionValue toEntity(Option option) {
+    public OptionValue toEntity() {
         return OptionValue.create(
-                option,
                 this.value,
                 this.description,
                 this.addPrice

@@ -1,14 +1,17 @@
 package com.sparta.foodorder.domain.menu.presentation.dto;
 
 import com.sparta.foodorder.domain.menu.domain.Option;
-import lombok.Getter;
-
+import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import lombok.Getter;
 
 @Getter
-public class OptionResponseDto {
+public class OptionResponseDto implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     private final UUID id;
     private final String optionName;
     private final UUID menuId;
