@@ -41,27 +41,38 @@ public class Menu extends BaseEntity {
     @Column(name = "is_active")
     private boolean active = true;
 
-    @OneToMany(mappedBy = "menu")
+    @OneToMany(mappedBy = "menu", cascade = CascadeType.ALL)
     private List<Option> options = new ArrayList<>();
 
     private Menu(String name, String description, Integer price, Store store,
-                 boolean hidden, boolean active, List<Option> options) {
+                 boolean hidden, boolean active) {
         this.name = name;
         this.description = description;
         this.price = price;
         this.store = store;
         this.hidden = hidden;
         this.active = active;
-        this.options = options != null ? options : new ArrayList<>();
 
     }
 
     public static Menu create(String name, String description, Integer price,
                               Store store, boolean hidden, boolean active,
                               List<Option> options) {
-        return new Menu(name, description, price, store, hidden, active, options);
+        Menu menu = new Menu(name, description, price, store, hidden, active);
+        for(Option option : options) {
+            menu.addOption(option);
+        }
+
+        return menu;
     }
 
+    public void addOption(Option option) {
+        if(options == null) {
+            options = new ArrayList<>();
+        }
+        options.add(option);
+        option.setMenu(this);
+    }
 
     public void changeMenu(String name, String description, Integer price, boolean hidden, boolean active) {
         if (name != null && !name.isBlank()) this.name = name;

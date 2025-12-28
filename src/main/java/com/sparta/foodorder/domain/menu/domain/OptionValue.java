@@ -33,17 +33,20 @@ public class OptionValue extends BaseEntity {
     private Integer addPrice;
 
 
-    private OptionValue(Option option, String value, String description,
+    private OptionValue(String value, String description,
                         Integer addPrice) {
-        this.option = option;
         this.value = value;
         this.description = description;
         this.addPrice = addPrice != null ? addPrice : 0;
 
     }
 
-    public static OptionValue create(Option option, String value, String description, Integer addPrice) {
-        return new OptionValue(option, value, description, addPrice);
+    public static OptionValue create(String value, String description, Integer addPrice) {
+        return new OptionValue(value, description, addPrice);
+    }
+
+    public void setOption (Option option) {
+        this.option = option;
     }
 
     public void updateOptionValue(String value, String description, Integer addPrice) {

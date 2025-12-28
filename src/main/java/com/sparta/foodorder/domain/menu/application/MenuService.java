@@ -48,6 +48,7 @@ public class MenuService {
     private final OptionValueRepository optionValueRepository;
     private final StoreRepository storeRepository;
 
+    @Transactional
     public MenuResponseDto insertMenu(MenuCreateRequestDto requestDto, CustomUserDetails userDetails) {
         Long userId = userDetails.getUserId();
         boolean isOwner = storeRepository.findByOwnerId(userId).isPresent();
@@ -162,7 +163,7 @@ public class MenuService {
             if (!menu.getStore().getId().equals(store.getId())) {
                 throw new BusinessException(ErrorCode.MENU_NOT_FOUND);
             }
-            OptionValue optionValue = optionValueCreateRequestDto.toEntity(option);
+            OptionValue optionValue = optionValueCreateRequestDto.toEntity();
 
             return OptionValueResponseDto.from(optionValueRepository.save(optionValue));
         }
@@ -172,7 +173,7 @@ public class MenuService {
             throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
         }
 
-        OptionValue optionValue = optionValueCreateRequestDto.toEntity(option);
+        OptionValue optionValue = optionValueCreateRequestDto.toEntity();
 
         return OptionValueResponseDto.from(optionValueRepository.save(optionValue));
 
@@ -626,7 +627,7 @@ public class MenuService {
     }
 
     private MenuResponseDto saveOption(Menu menu, OptionCreateRequestDto requestDto) {
-        Option option = requestDto.toEntity(menu);
+        Option option = requestDto.toEntity();
         menu.getOptions().add(option);
         menuRepository.saveAndFlush(menu);
         return MenuResponseDto.from(menu);

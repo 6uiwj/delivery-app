@@ -1,14 +1,12 @@
 package com.sparta.foodorder.domain.menu.presentation.dto;
 
-import com.sparta.foodorder.domain.menu.domain.Menu;
 import com.sparta.foodorder.domain.menu.domain.Option;
+import com.sparta.foodorder.domain.menu.domain.OptionValue;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Getter
 @Setter
@@ -20,20 +18,19 @@ public class OptionCreateRequestDto {
     @Valid
     List<OptionValueCreateRequestDto> optionValues;
 
-    public Option toEntity(Menu menu) {
+    public Option toEntity() {
+
+        List<OptionValue> optionValueList = optionValues.stream()
+            .map(dto -> OptionValue.create(
+                dto.getValue(), dto.getDescription(), dto.getAddPrice()))
+            .toList();
+
         Option option = Option.create(
-                menu,
                 this.optionName,
-                new ArrayList<>()
+                optionValueList
         );
-
-
-        if(optionValues != null && !optionValues.isEmpty()) {
-            //각 list에 있는 DTO를 하나씩 꺼내 엔티티로 변환 -> 옵션의 optionvalue리스트에 추가
-            optionValues.forEach(optionValueDto ->
-                    option.getOptionValues().add(optionValueDto.toEntity(option)));
-        }
 
         return option;
     }
+
 }
