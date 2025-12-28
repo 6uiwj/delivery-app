@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.repository.query.Param;
 
 public interface MenuRepository {
 
@@ -20,7 +21,7 @@ public interface MenuRepository {
     void delete(Menu menu);
 
     //메뉴 전체 조회(일반 유저용)
-    List<Menu> findByStoreIdAndActiveTrueAndHiddenFalseAndDeletedAtIsNull(UUID storeId);
+    List<Menu> findByStoreIdAndActiveTrueAndHiddenFalseAndDeletedAtIsNull(@Param("storeId")UUID storeId);
 
     //메뉴 전체 조회(가게 주인용)
     List<Menu> findByStoreIdAndDeletedAtIsNull(UUID storeId);
