@@ -1,4 +1,4 @@
-package com.sparta.foodorder.domain.menu.presentation.dto;
+package com.sparta.foodorder.domain.menu.presentation.dto.request;
 
 import com.sparta.foodorder.domain.menu.domain.Option;
 import com.sparta.foodorder.domain.menu.domain.OptionValue;
@@ -25,12 +25,10 @@ public class OptionCreateRequestDto {
                 dto.getValue(), dto.getDescription(), dto.getAddPrice()))
             .toList();
 
-        Option option = Option.create(
+        return Option.create(
                 this.optionName,
                 optionValueList
         );
-
-        return option;
     }
 
 }

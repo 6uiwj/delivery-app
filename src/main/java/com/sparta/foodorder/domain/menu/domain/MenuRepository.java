@@ -31,4 +31,6 @@ public interface MenuRepository {
     Page<Menu> findByNameContaining(String searchString, Pageable pageable);
 
     Optional<Menu> findByIdAndDeletedAtIsNull(UUID menuId);
+
+    Optional<Menu> findByIdAndActiveTrueAndHiddenFalseAndDeletedAtIsNull(UUID menuId);
 }

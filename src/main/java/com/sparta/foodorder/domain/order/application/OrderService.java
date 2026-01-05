@@ -1,8 +1,6 @@
 package com.sparta.foodorder.domain.order.application;
 
 import com.sparta.foodorder.domain.menu.application.MenuService;
-import com.sparta.foodorder.domain.menu.application.OptionService;
-import com.sparta.foodorder.domain.menu.application.OptionValueService;
 import com.sparta.foodorder.domain.menu.domain.Menu;
 import com.sparta.foodorder.domain.menu.domain.Option;
 import com.sparta.foodorder.domain.menu.domain.OptionValue;
@@ -44,8 +42,6 @@ public class OrderService {
     private final StoreService storeService;
     private final MenuService menuService;
     private final UserService userService;
-    private final OptionService optionService;
-    private final OptionValueService optionValueService;
     private final ApplicationEventPublisher applicationEventPublisher;
 
     private Order getOrder(UUID orderId) {
@@ -74,12 +70,12 @@ public class OrderService {
 
             // 옵션 처리
             for (CreateOrderRequestDto.OptionInfo optionInfo : menuInfo.options()) {
-                Option option = optionService.findById(optionInfo.optionId());
+                Option option = menu.getOption(optionInfo.optionId());
                 OrderMenuOption orderMenuOption = new OrderMenuOption(orderMenu, option.getName(), 0);
 
                 int optionTotalPrice = 0;
                 for (UUID valueId : optionInfo.optionValueIds()) {
-                    OptionValue value = optionValueService.findById(valueId);
+                    OptionValue value = option.getOptionValue(valueId);
                     OrderMenuOptionValue orderMenuOptionValue = new OrderMenuOptionValue(orderMenuOption, value.getValue(), value.getAddPrice());
                     orderMenuOption.addValue(orderMenuOptionValue);
                     optionTotalPrice += value.getAddPrice();

@@ -3,7 +3,16 @@ package com.sparta.foodorder.domain.menu.presentation;
 
 import com.sparta.foodorder.domain.auth.infrastructure.CustomUserDetails;
 import com.sparta.foodorder.domain.menu.application.MenuService;
-import com.sparta.foodorder.domain.menu.presentation.dto.*;
+import com.sparta.foodorder.domain.menu.presentation.dto.request.MenuCreateRequestDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.request.MenuUpdateRequestDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.request.OptionCreateRequestDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.request.OptionUpdateRequestDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.request.OptionValueCreateRequestDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.request.OptionValueUpdateRequestDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.response.MenuResponseDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.response.MenuSearchResponseDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.response.OptionResponseDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.response.OptionValueResponseDto;
 import com.sparta.foodorder.domain.user.domain.UserRole;
 import com.sparta.foodorder.global.dto.PagedResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,10 +40,11 @@ public class MenuController implements MenuApiDocs {
     @Operation(summary = "메뉴 생성", description = "새로운 메뉴를 생성합니다.")
     @PostMapping
     @PreAuthorize("hasAnyRole('OWNER','MANAGER','MASTER')")
-    public ResponseEntity<MenuResponseDto> createMenu(@RequestBody @Valid MenuCreateRequestDto requestDto,
+    public ResponseEntity<MenuResponseDto> createMenu(@RequestParam UUID storeId,
+                                                      @RequestBody @Valid MenuCreateRequestDto requestDto,
                                                       @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        MenuResponseDto responseDto = menuService.insertMenu(requestDto, userDetails);
+        MenuResponseDto responseDto = menuService.insertMenu(requestDto, userDetails, storeId);
 
         return ResponseEntity.ok(responseDto);
 
