@@ -1,4 +1,4 @@
-package com.sparta.foodorder.domain.menu.presentation.dto;
+package com.sparta.foodorder.domain.menu.presentation.dto.response;
 
 import com.sparta.foodorder.domain.menu.domain.Option;
 import java.io.Serializable;

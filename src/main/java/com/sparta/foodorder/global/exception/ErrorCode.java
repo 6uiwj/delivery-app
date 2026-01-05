@@ -38,7 +38,7 @@ public enum ErrorCode {
     MENU_OPTION_NOT_FOUND(HttpStatus.NOT_FOUND, "M002", "존재하지 않는 옵션입니다."),
     MENU_OPTION_VALUE_NOT_FOUND(HttpStatus.NOT_FOUND, "M003", "존재하지 않는 옵션 value 값입니다."),
 
-    // 온셥 관련 에러
+    // 옵션 관련 에러
     OPTION_PERMISSION_DENIED(HttpStatus.FORBIDDEN, "MO001", "해당 옵션에 대한 접근권한이 없습니다."),
     OPTION_NOT_FOUND(HttpStatus.NOT_FOUND, "MO002", "존재하지 않는 옵션입니다."),
     OPTION_VALUE_NOT_FOUND(HttpStatus.NOT_FOUND, "MO003", "존재하지 않는 옵션값입니다."),

@@ -1,7 +1,11 @@
 package com.sparta.foodorder.domain.menu.domain;
 
 import com.sparta.foodorder.global.common.BaseEntity;
+import com.sparta.foodorder.global.exception.BusinessException;
+import com.sparta.foodorder.global.exception.ErrorCode;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -25,7 +29,7 @@ public class Option extends BaseEntity {
     @JoinColumn(name = "menu_id", nullable = false)
     private Menu menu;
 
-    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "option", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OptionValue> optionValues;
 
 
@@ -39,29 +43,48 @@ public class Option extends BaseEntity {
 
     }
 
-    public static Option create(String name, List<OptionValue> optionValues) {
-        Option option = new Option(name, new ArrayList<>());
-
-        for(OptionValue optionValue : optionValues) {
-            option.addOptionValue(optionValue);
-        }
-
-        return option;
+    public static Option create(@NotBlank String optionName, List<OptionValue> optionValueList) {
+        return Option.builder()
+            .name(optionName)
+            .optionValues(optionValueList)
+            .build();
     }
 
-    private void addOptionValue(OptionValue optionValue) {
+    public OptionValue addOptionValue(String value, Integer price, String description) {
         if (optionValues == null) {
             optionValues = new ArrayList<>();
         }
-        optionValues.add(optionValue);
-        optionValue.setOption(this);
+
+        if (this.isDeleted()) {
+            throw new BusinessException(ErrorCode.OPTION_NOT_FOUND);
+        }
+        OptionValue optionValue = OptionValue.create(
+            value,
+            description,
+            price
+        );
+
+        this.optionValues.add(optionValue);
+        return optionValue;
     }
 
-    public void setMenu(Menu menu) {
-        this.menu = menu;
+    public OptionValue getOptionValue(UUID optionValueId) {
+        return this.optionValues.stream()
+            .filter(v -> v.getId().equals(optionValueId) && !v.isDeleted())
+            .findFirst()
+            .orElseThrow(() -> new BusinessException(ErrorCode.OPTION_VALUE_NOT_FOUND));
+    }
+
+    public List<OptionValue> getActiveOptionValues() {
+        return this.optionValues.stream()
+            .filter(v -> !v.isDeleted())
+            .collect(Collectors.toList());
     }
 
     public void updateOption(String name) {
+        if(this.isDeleted()) {
+            throw new BusinessException(ErrorCode.OPTION_NOT_FOUND);
+        }
         this.name = name;
     }
 

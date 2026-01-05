@@ -1,6 +1,6 @@
 package com.sparta.foodorder.domain.store.application.dto;
 
-import com.sparta.foodorder.domain.menu.presentation.dto.MenuResponseDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.response.MenuResponseDto;
 import com.sparta.foodorder.domain.store.domain.Store;
 import java.time.LocalDateTime;
 import java.time.LocalTime;

@@ -1,10 +1,10 @@
 package com.sparta.foodorder.domain.menu.presentation;
 
 import com.sparta.foodorder.domain.auth.infrastructure.CustomUserDetails;
-import com.sparta.foodorder.domain.menu.presentation.dto.OptionResponseDto;
-import com.sparta.foodorder.domain.menu.presentation.dto.OptionUpdateRequestDto;
-import com.sparta.foodorder.domain.menu.presentation.dto.OptionValueResponseDto;
-import com.sparta.foodorder.domain.menu.presentation.dto.OptionValueUpdateRequestDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.response.OptionResponseDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.request.OptionUpdateRequestDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.response.OptionValueResponseDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.request.OptionValueUpdateRequestDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;

@@ -2,14 +2,26 @@ package com.sparta.foodorder.domain.menu.domain;
 
 import com.sparta.foodorder.domain.store.domain.Store;
 import com.sparta.foodorder.global.common.BaseEntity;
-import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-
+import com.sparta.foodorder.global.exception.BusinessException;
+import com.sparta.foodorder.global.exception.ErrorCode;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -66,13 +78,34 @@ public class Menu extends BaseEntity {
         return menu;
     }
 
-    public void addOption(Option option) {
+    public Option addOption(Option option) {
         if(options == null) {
             options = new ArrayList<>();
         }
         options.add(option);
-        option.setMenu(this);
+        return option;
     }
+
+    public OptionValue addOptionValue(UUID optionId, String value, Integer price, String description) {
+        Option option = getOption(optionId);
+        return option.addOptionValue(value, price, description);
+
+    }
+
+    public Option getOption(UUID optionId) {
+        return this.options.stream()
+            .filter(option -> option.getId().equals(optionId) && !option.isDeleted())
+            .findFirst()
+            .orElseThrow(() -> new BusinessException(ErrorCode.OPTION_NOT_FOUND));
+    }
+
+    public List<Option> getActiveOptions() {
+        return this.options.stream()
+            .filter(option -> !option.isDeleted())
+            .collect(Collectors.toList());
+    }
+
+
 
     public void changeMenu(String name, String description, Integer price, boolean hidden, boolean active) {
         if (name != null && !name.isBlank()) this.name = name;
@@ -91,6 +124,18 @@ public class Menu extends BaseEntity {
     private void deleteCascade(String deletedBy) {
         for(Option option : this.options) {
             option.delete(deletedBy);
+        }
+    }
+
+    public void validateAccess(Long userId, boolean isAdmin) {
+        Store store = getStore();
+
+        if (store.isDeleted() || !store.getIsActive()) {
+            throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
+        }
+
+        if(!isAdmin && !store.getOwnerId().equals(userId)) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
     }
 

@@ -1,4 +1,4 @@
-package com.sparta.foodorder.domain.menu.presentation.dto;
+package com.sparta.foodorder.domain.menu.presentation.dto.request;
 
 import com.sparta.foodorder.domain.menu.domain.OptionValue;
 import jakarta.validation.constraints.NotBlank;

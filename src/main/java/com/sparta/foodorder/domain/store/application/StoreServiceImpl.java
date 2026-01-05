@@ -1,7 +1,7 @@
 package com.sparta.foodorder.domain.store.application;
 
 import com.sparta.foodorder.domain.menu.domain.Menu;
-import com.sparta.foodorder.domain.menu.presentation.dto.MenuResponseDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.response.MenuResponseDto;
 import com.sparta.foodorder.domain.review.application.dto.RatingStats;
 import com.sparta.foodorder.domain.review.domain.ReviewRepository;
 import com.sparta.foodorder.domain.store.application.dto.*;
@@ -177,6 +177,12 @@ public class StoreServiceImpl implements StoreService {
         if (!storeRepository.existsByIdAndIsActiveTrue(storeId)) {
             throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
         }
+    }
+
+
+    @Override
+    public void validateOwner(Long userId) {
+        storeRepository.findByOwnerId(userId).orElseThrow(() -> new BusinessException(ErrorCode.ACCESS_DENIED));
     }
 
     @Override

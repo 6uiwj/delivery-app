@@ -4,27 +4,24 @@ import com.sparta.foodorder.domain.auth.infrastructure.CustomUserDetails;
 import com.sparta.foodorder.domain.menu.domain.Menu;
 import com.sparta.foodorder.domain.menu.domain.MenuRepository;
 import com.sparta.foodorder.domain.menu.domain.Option;
-import com.sparta.foodorder.domain.menu.domain.OptionRepository;
 import com.sparta.foodorder.domain.menu.domain.OptionValue;
-import com.sparta.foodorder.domain.menu.domain.OptionValueRepository;
-import com.sparta.foodorder.domain.menu.presentation.dto.MenuCreateRequestDto;
-import com.sparta.foodorder.domain.menu.presentation.dto.MenuResponseDto;
-import com.sparta.foodorder.domain.menu.presentation.dto.MenuSearchResponseDto;
-import com.sparta.foodorder.domain.menu.presentation.dto.MenuUpdateRequestDto;
-import com.sparta.foodorder.domain.menu.presentation.dto.OptionCreateRequestDto;
-import com.sparta.foodorder.domain.menu.presentation.dto.OptionResponseDto;
-import com.sparta.foodorder.domain.menu.presentation.dto.OptionUpdateRequestDto;
-import com.sparta.foodorder.domain.menu.presentation.dto.OptionValueCreateRequestDto;
-import com.sparta.foodorder.domain.menu.presentation.dto.OptionValueResponseDto;
-import com.sparta.foodorder.domain.menu.presentation.dto.OptionValueUpdateRequestDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.request.MenuCreateRequestDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.request.MenuUpdateRequestDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.request.OptionCreateRequestDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.request.OptionUpdateRequestDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.request.OptionValueCreateRequestDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.request.OptionValueUpdateRequestDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.response.MenuResponseDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.response.MenuSearchResponseDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.response.OptionResponseDto;
+import com.sparta.foodorder.domain.menu.presentation.dto.response.OptionValueResponseDto;
 import com.sparta.foodorder.domain.store.domain.Store;
-import com.sparta.foodorder.domain.store.domain.StoreRepository;
+import com.sparta.foodorder.domain.store.domain.StoreService;
 import com.sparta.foodorder.domain.user.domain.UserRole;
 import com.sparta.foodorder.global.dto.PagedResponse;
 import com.sparta.foodorder.global.exception.BusinessException;
 import com.sparta.foodorder.global.exception.ErrorCode;
 import jakarta.validation.Valid;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -46,101 +43,48 @@ import org.springframework.transaction.annotation.Transactional;
 public class MenuService {
 
     private final MenuRepository menuRepository;
-    private final OptionRepository optionRepository;
-    private final OptionValueRepository optionValueRepository;
-    private final StoreRepository storeRepository;
+    private final StoreService storeService;
 
     @CacheEvict(value = "menus", allEntries = true)
     @Transactional
-    public MenuResponseDto insertMenu(MenuCreateRequestDto requestDto, CustomUserDetails userDetails) {
+    public MenuResponseDto insertMenu(MenuCreateRequestDto requestDto, CustomUserDetails userDetails, UUID storeId) {
         Long userId = userDetails.getUserId();
-        boolean isOwner = storeRepository.findByOwnerId(userId).isPresent();
-        boolean isMasterOrManager = checkAdminAuthorization(userDetails);
 
-        //#1 . 생성 권한이 있나 확인
-        if(!isOwner && ! isMasterOrManager) {
+        //manager,master, 해당 가게owner일 경우만 생성
+        boolean isAdmin = isAdmin(userDetails); //관리자인지 검증
+        Store store = storeService.findByUUID(storeId); //가게 존재여부 검증
+
+        //생성 권한 확인
+        if(!isAdmin && !isOwner(store, userId)) {
             log.info("생성권한 없음(가게오너, MANAGER, MASTER가 아님");
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
-        Store store;
 
-        if(isOwner) {
-            log.info("가게 사장의 메뉴 생성 요청");
-            //#2. 오너면 가게 주인이 맞나 확인
-            store = storeRepository.findByOwnerId(userId).orElseThrow(() -> new BusinessException(ErrorCode.STORE_PERMISSION_DENIED));
-
-            if (store.isDeleted()) {
-                log.info("삭제된 가게에 대한 요청");
-                throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
-            }
-            Menu menu = requestDto.toEntity(store);
-            Menu savedMenu = menuRepository.save(menu);
-            return MenuResponseDto.from(savedMenu);
-        }
-        log.info("관리자의 메뉴 생성 요청");
-        //#3. 관리자면 storeId를 가져왔나 확인
-        if (requestDto.getStoreId() == null) {
-            log.info("요청시 storeId 데이터 누락");
-            throw new BusinessException(ErrorCode.MISSING_INPUT_VALUE);
-        }
-        //#4. store가 존재하나 확인
-        store = storeRepository.findById(requestDto.getStoreId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
-
-        if (store.isDeleted()) {
-            log.info("삭제된 가게");
-            throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
-        }
-
-        // 4️⃣ 메뉴 생성
+        // 메뉴 생성
         Menu menu = requestDto.toEntity(store);
         Menu savedMenu = menuRepository.save(menu);
         return MenuResponseDto.from(savedMenu);
 
     }
 
-
     @CacheEvict(value = "menus", allEntries = true)
     @Transactional
     public MenuResponseDto createOption(OptionCreateRequestDto requestDto, UUID menuId, CustomUserDetails userDetails) {
-        Long userId = userDetails.getUserId();
-        boolean isOwner = storeRepository.findByOwnerId(userId).isPresent();
-        boolean isMasterOrManager = checkAdminAuthorization(userDetails);
 
-        //#1 . 생성 권한이 있나 확인
-        if(!isOwner && ! isMasterOrManager) {
-            log.info("옵션 생성 권한 없음(가게 OWNER, MANAGER, MASTER가 아님");
+        Long userId = userDetails.getUserId();
+        Menu menu = menuRepository.findById(menuId).orElseThrow(() -> new BusinessException(ErrorCode.MENU_NOT_FOUND));
+        Store store = menu.getStore();
+
+        //manager,master, 해당 가게owner일 경우만 생성
+        boolean isAdmin = isAdmin(userDetails); //관리자인지 검증
+
+        //생성 권한 확인
+        if(!isAdmin && !isOwner(store, userId)) {
+            log.info("생성권한 없음(가게오너, MANAGER, MASTER가 아님");
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
-        Store store;
-        Menu menu = menuRepository.findById(menuId).orElseThrow(() -> new BusinessException(ErrorCode.MENU_NOT_FOUND));
 
-        if(isOwner) {
-            log.info("가게 OWNER의 옵션 생성 요청");
-            //#2. 오너면 가게 주인이 맞나 확인
-            store = storeRepository.findByOwnerId(userId).orElseThrow(() -> new BusinessException(ErrorCode.STORE_PERMISSION_DENIED));
-
-            if(store.isDeleted()) {
-                log.info("삭제된 가게에 대한 요청");
-                throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
-            }
-
-
-            if(!menu.getStore().getId().equals(store.getId())) {
-                log.info("해당 가게에 해당 메뉴가 존재하지 않음 ");
-                throw new BusinessException(ErrorCode.MENU_NOT_FOUND);
-            }
-
-            return saveOption(menu, requestDto);
-        }
-
-        log.info("관리자의 옵셔 생성");
-        UUID storeId = menu.getStore().getId();
-        store =  storeRepository.findById(storeId).orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
-        if(store.isDeleted()) {
-            log.info("삭제된 가게");
-            throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
-        }
+        getValidStore(menu);
 
         return saveOption(menu, requestDto);
     }
@@ -148,43 +92,30 @@ public class MenuService {
     @CacheEvict(value = "menus", allEntries = true)
     public OptionValueResponseDto createOptionValue(OptionValueCreateRequestDto optionValueCreateRequestDto,UUID menuId, UUID optionId, CustomUserDetails userDetails) {
         Long userId = userDetails.getUserId();
-        boolean isOwner = storeRepository.findByOwnerId(userId).isPresent();
-        boolean isMasterOrManager = checkAdminAuthorization(userDetails);
+        Menu menu = menuRepository.findById(menuId).orElseThrow(() -> new BusinessException(ErrorCode.MENU_NOT_FOUND));
+        Store store = menu.getStore();
 
-        //#1 . 생성 권한이 있나 확인
-        if(!isOwner && ! isMasterOrManager) {
+        //manager,master, 해당 가게owner일 경우만 생성
+        boolean isAdmin = isAdmin(userDetails); //관리자인지 검증
+
+        //생성 권한 확인
+        if(!isAdmin && !isOwner(store, userId)) {
+            log.info("생성권한 없음(가게오너, MANAGER, MASTER가 아님");
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
-        Store store;
-        Menu menu = menuRepository.findById(menuId).orElseThrow(() -> new BusinessException(ErrorCode.MENU_NOT_FOUND));
-        Option option = optionRepository.findById(optionId).orElseThrow(() -> new BusinessException(ErrorCode.OPTION_NOT_FOUND));
 
-        if(isOwner) {
-            //#2. 오너면 가게 주인이 맞나 확인
-            store = storeRepository.findByOwnerId(userId).orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
+            OptionValue optionValue = menu.addOptionValue(
+                optionId,
+                optionValueCreateRequestDto.getValue(),
+                optionValueCreateRequestDto.getAddPrice(),
+                optionValueCreateRequestDto.getDescription()
+            );
 
-            if (store.isDeleted()) {
-                throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
-            }
-            if (!menu.getStore().getId().equals(store.getId())) {
-                throw new BusinessException(ErrorCode.MENU_NOT_FOUND);
-            }
-            OptionValue optionValue = optionValueCreateRequestDto.toEntity();
+            menuRepository.save(menu);
 
-            return OptionValueResponseDto.from(optionValueRepository.save(optionValue));
-        }
-        UUID storeId = menu.getStore().getId();
-        store =  storeRepository.findById(storeId).orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
-        if(store.isDeleted()) {
-            throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
-        }
-
-        OptionValue optionValue = optionValueCreateRequestDto.toEntity();
-
-        return OptionValueResponseDto.from(optionValueRepository.save(optionValue));
-
-
+            return OptionValueResponseDto.from(optionValue);
     }
+
 
     @Cacheable(
         value = "menus",
@@ -195,8 +126,7 @@ public class MenuService {
     public List<MenuResponseDto> getMenus(CustomUserDetails userDetails, UUID storeId) {
         Long userId = userDetails.getUserId();
         UserRole userRole = userDetails.getRole();
-        Store store = storeRepository.findById(storeId).orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
-
+        Store store = storeService.findByUUID(storeId);
         List<Menu> menu;
 
         if(userRole == UserRole.MANAGER||userRole == UserRole.MASTER) {
@@ -228,18 +158,10 @@ public class MenuService {
 
     @Transactional(readOnly = true)
     public MenuResponseDto getMenuForUser(UUID menuId, UUID storeId) {
-
-        Store store =   storeRepository.findById(storeId).orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
-        if (!store.getIsActive() || store.isDeleted()) {
-            throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
-        }
         Menu menu = menuRepository.findById(menuId).orElseThrow(() -> new BusinessException(ErrorCode.MENU_NOT_FOUND));
 
-        //해당 가게의 메뉴가 맞는지 확인
-        if (!menu.getStore().getId().equals(storeId)) {
-            log.info("해당 메뉴가 가게에 존재하지 않음");
-            throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
-        }
+        getValidStore(menu);
+
         //메뉴가 활성화 상태인지 확인
         if (!menu.isActive() || menu.isHidden() || menu.isDeleted()) {
             log.info("메뉴가 삭제되거나 비활성상태임");
@@ -255,30 +177,19 @@ public class MenuService {
         Menu menu = menuRepository.findById(menuId).orElseThrow(() -> new BusinessException(ErrorCode.MENU_NOT_FOUND));
 
         Long userId = userDetails.getUserId();
-        Store store = storeRepository.findById(storeId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
+        Store store = menu.getStore();
+
+        boolean isAdmin = isAdmin(userDetails);
+
         if (store.isDeleted()) {
             throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
         }
 
-
-        if (!menu.getStore().getId().equals(storeId)) {
-            log.info("해당 메뉴가 가게에 존재하지 않음 ");
-            throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
-        }
-        boolean isOwner = store.getOwnerId().equals(userId);
-        // ADMIN/Manager 여부 확인
-        boolean isAdminOrManager = checkAdminAuthorization(userDetails);
-
-        if(!isOwner && !isAdminOrManager) {
-            log.info("가게주인이나 관리자가 아닙니다.");
+        if(!isAdmin && !isOwner(store, userId)) {
+            log.info("가게오너, MANAGER, MASTER가 아님");
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
 
-        if(isOwner && menu.isDeleted()) {
-            log.info("삭제된 메뉴");
-            throw new BusinessException(ErrorCode.MENU_NOT_FOUND);
-        }
         return MenuResponseDto.from(menu);
 
 
@@ -286,90 +197,40 @@ public class MenuService {
 
 
     public List<OptionResponseDto> getOptions(UUID menuId, CustomUserDetails userDetails) {
-
+        Long userId = userDetails.getUserId();
 
         //메뉴 존재 검증
-        Menu menu = menuRepository.findById(menuId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.MENU_NOT_FOUND));
-        //가게 활성화 여부
+        Menu menu = validateMenu(menuId);
         Store checkStore = menu.getStore();
-        if (!checkStore.getIsActive() || checkStore.isDeleted()) {
-            log.info("삭제되었거나 활성화되지 않은 가게");
-            throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
-        }
 
-        // 2. 권한 확인
-        Long userId = userDetails.getUserId();
-        boolean isOwner = storeRepository.findByOwnerId(userId)
-                .map(store -> store.getId().equals(menu.getStore().getId()))
-                .orElse(false);
-        boolean isMasterOrManager = checkAdminAuthorization(userDetails);
+        boolean admin = isAdmin(userDetails);
+        boolean owner = isOwner(checkStore, userId);
 
-        // 4. 일반 사용자 및 오너 검증
-        if (!isMasterOrManager) {
-            log.info("USER/OWNER의 조회요청");
-            // 메뉴 삭제된 경우 접근 불가
-            if (menu.isDeleted()) {
-                log.info("삭제된 메뉴의 옵션에 접근 시도함");
-                throw new BusinessException(ErrorCode.MENU_NOT_FOUND);
-            }
-            // 일반 사용자ㄷ 또는 다른가게 사장은 활성화/숨김 상태도 체크
-            if (!isOwner && (!menu.isActive() || menu.isHidden())) {
-                log.info("일반사용자혹은 다른가게 주인이 활성화되지 않은 메뉴에 접근시도함");
-                throw new BusinessException(ErrorCode.MENU_NOT_FOUND);
-            }
-        }
-        List<Option> optionList = isMasterOrManager
-                ? optionRepository.findAllByMenuId(menuId)
-                : optionRepository.findAllByMenuIdAndDeletedAtIsNull(menuId);
+        List<Option> optionList = admin||owner
+                ? menu.getOptions()
+                : menu.getActiveOptions();
 
         return optionList.stream().map(OptionResponseDto::from).toList();
     }
 
 
     public List<OptionValueResponseDto> getOptionValues(UUID menuId, UUID optionId, CustomUserDetails userDetails) {
-        // 1. 메뉴 존재 여부
-        Menu menu = menuRepository.findById(menuId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.MENU_NOT_FOUND));
+        Long userId = userDetails.getUserId();
 
+        // 1. 메뉴 존재 여부
+        Menu menu = validateMenu(menuId);
+        Option option = menu.getOption(optionId);
 
         Store checkStore = menu.getStore();
-        if (!checkStore.getIsActive() || checkStore.isDeleted()) {
-            log.info("가게가 삭제되거나 비활성화상태");
-            throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
-        }
+        getValidStore(menu);
 
         // 2. 권한 확인
-        Long userId = userDetails.getUserId();
-        boolean isOwner = storeRepository.findByOwnerId(userId)
-                .map(store -> store.getId().equals(menu.getStore().getId()))
-                .orElse(false);
-        boolean isMasterOrManager = checkAdminAuthorization(userDetails);
+        boolean owner = isOwner(checkStore, userId);
+        boolean admin = isAdmin(userDetails);
 
+        List<OptionValue> optionValueList = owner||admin ?
+            option.getOptionValues() : option.getActiveOptionValues();
 
-        // 4. 일반 사용자 및 오너 검증
-        if (!isMasterOrManager) {
-            // 메뉴 삭제된 경우 접근 불가
-            if (menu.isDeleted()) {
-                log.info("삭제된 메뉴");
-                throw new BusinessException(ErrorCode.MENU_NOT_FOUND);
-            }
-            // 일반 사용자는 활성화/숨김 상태도 체크
-            if (!isOwner && (!menu.isActive() || menu.isHidden())) {
-                log.info("일반 사용자나 다른가게 OWNER는 비활성화 메뉴에 접근 못함");
-                throw new BusinessException(ErrorCode.MENU_NOT_FOUND);
-            }
-        }
-
-        // 5. 옵션 조회 (OWNER와 일반 사용자는 deleted 제외, MASTER/Manager는 모두 조회)
-        List<OptionValue> optionValueList;
-        if (isMasterOrManager) {
-            log.info("관리자의 옵션 조회 - 모든 옵션");
-            optionValueList = optionValueRepository.findAllByOptionId(optionId);
-        } else {
-            log.info("가게 사장의 옵션조회 - 삭제되지 않은 옵션만");
-            optionValueList = optionValueRepository.findAllByOptionIdAndDeletedAtIsNull(optionId);
-        }
         return optionValueList.stream().map(OptionValueResponseDto::from).toList();
 
     }
@@ -378,58 +239,19 @@ public class MenuService {
     public MenuResponseDto updateMenu(UUID menuId, @Valid MenuUpdateRequestDto requestDto, CustomUserDetails userDetails) {
 
         Long userId = userDetails.getUserId();
-        boolean isOwner = storeRepository.findByOwnerId(userId).isPresent();
-        boolean isMasterOrManager = checkAdminAuthorization(userDetails);
+        Menu menu = validateMenu(menuId);
+        Store checkStore = menu.getStore();
+        boolean owner = isOwner(checkStore, userId);
+        boolean admin = isAdmin(userDetails);
 
-        //메뉴 존재 검증
-        Menu menu = menuRepository.findById(menuId).orElseThrow(() -> new BusinessException(ErrorCode.MENU_NOT_FOUND));
-        if(menu.isDeleted()) throw new BusinessException(ErrorCode.MENU_NOT_FOUND);
-
-        if(!isOwner && !isMasterOrManager) {
+        if(!owner && !admin) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
 
-        Store store;
-
-        if(isOwner) {
-            if (menu.isDeleted()) throw new BusinessException(ErrorCode.MENU_NOT_FOUND);
-
-            //가게 존재 및 소유자 검증
-            store = storeRepository.findByOwnerId(userId).orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
-
-            if (store.isDeleted()) {
-                throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
-            }
-
-            //메뉴가 해당 가게 아래에 있는 메뉴가 맞는지 검증
-            if (menu.getStore().getId().equals(store.getId())) {
-                log.info("해당 가게에 존재하는 메뉴인지 ");
-                menu.changeMenu(
-                        requestDto.getName(),
-                        requestDto.getDescription(),
-                        requestDto.getPrice(),
-                        requestDto.isHidden(),
-                        requestDto.isActive()
-                );
-                Menu savedMenu = menuRepository.save(menu); //엔티티변경시 더티체킹이 일어나서 save필요없음 (명시적으로 보여줄거면 해도된다)
-
-                MenuResponseDto responseDto = MenuResponseDto.from(savedMenu);
-
-
-                return responseDto;
-            } else throw new BusinessException(ErrorCode.MENU_NOT_FOUND);
-        }
         if(requestDto.getStoreId() == null) {
             throw new BusinessException(ErrorCode.MISSING_INPUT_VALUE);
         }
 
-        store = storeRepository.findById(requestDto.getStoreId()).orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
-
-        if(store.isDeleted()) {
-            throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
-        }
-        if (menu.getStore().getId().equals(store.getId())) {
-            log.info("해당 가게에 존재하는 메뉴인지 ");
             menu.changeMenu(
                     requestDto.getName(),
                     requestDto.getDescription(),
@@ -438,73 +260,25 @@ public class MenuService {
                     requestDto.isActive()
             );
             Menu savedMenu = menuRepository.save(menu);
-            MenuResponseDto responseDto = MenuResponseDto.from(savedMenu);
-            return responseDto;
-
-        } else throw new BusinessException(ErrorCode.MENU_NOT_FOUND);
-
+            return MenuResponseDto.from(savedMenu);
     }
 
     @CacheEvict(value = "menus", allEntries = true)
     public void deleteMenu(UUID menuId, CustomUserDetails userDetails) {
         Long userId = userDetails.getUserId();
-        boolean isOwner = storeRepository.findByOwnerId(userId).isPresent();
-        boolean isMasterOrManager = checkAdminAuthorization(userDetails);
 
-        if(!isOwner && ! isMasterOrManager) {
+        Menu menu = getMenuForAdmin(menuId);
+        Store checkStore = menu.getStore();
+        boolean owner = isOwner(checkStore, userId);
+        boolean master = isAdmin(userDetails);
+
+        if(!owner && !master) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
 
-        Menu menu = menuRepository.findById(menuId).orElseThrow(() -> new BusinessException(ErrorCode.MENU_NOT_FOUND));
-        if(menu.isDeleted()) throw new BusinessException(ErrorCode.MENU_NOT_FOUND);
-
-
         String username = userDetails.getUsername();
-        if(isOwner) {
-            //가게 주인이 맞는지 확인
-            Store store = storeRepository.findByOwnerId(userId).orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
-            if(store.isDeleted()) {
-                throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
-            }
-            if(!menu.getStore().getId().equals(store.getId())) {
-                throw new BusinessException(ErrorCode.MENU_NOT_FOUND);
-            }
 
-            //menuId로 메뉴에 대한 옵션들을 검색하고, 그 옵션들에 대한옵션값들을 검색해서 논리삭제후, 옵션들 논리삭제 -> 메뉴 논리삭제
-            //옵션 id 가져오기
-            List<UUID> optionIdList = optionRepository.findAllByMenuId(menuId).stream().map(Option::getId)
-                    .toList();
 
-            //옵션 값 논리삭제
-            List<OptionValue> optionValues = new ArrayList<>();
-
-            for(UUID optionId : optionIdList) {
-                List<OptionValue> values = optionValueRepository.findAllByOptionId(optionId);
-                optionValues.addAll(values);
-            }
-            optionValues.forEach(optionValue -> optionValue.delete(username));
-            optionValueRepository.saveAll(optionValues);
-
-            //옵션 논리 삭제
-            List<Option> optionList = optionRepository.findAllByMenuId(menuId);
-            optionList.forEach(option -> option.delete(username));
-            optionRepository.saveAll(optionList);
-
-            //메뉴 논리 삭제
-            menu.deleteMenu(username);
-            menuRepository.save(menu);
-        }
-
-        UUID storeId = menu.getStore().getId();
-        Store store =  storeRepository.findById(storeId).orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
-        //해당 가게의 메뉴자 맞는지 확인
-        if( !menu.getStore().getId().equals(storeId)) {
-            throw new BusinessException(ErrorCode.MENU_NOT_FOUND);
-        }
-
-        if(store.isDeleted()) {
-            throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
-        }
         menu.deleteMenu(username);
         menuRepository.save(menu);
     }
@@ -521,9 +295,6 @@ public class MenuService {
         return menu;
     }
 
-    public List<Menu> findAllById(List<UUID> menuIds) {
-        return menuRepository.findAllById(menuIds);
-    }
 
     public PagedResponse<MenuSearchResponseDto> searchMenus(String searchString, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -548,13 +319,14 @@ public class MenuService {
             OptionUpdateRequestDto requestDto,
             UUID menuId, UUID optionId, Long userId
     ) {
-        Menu menu = getValidMenu(menuId);
+        Menu menu = getMenuForAdmin(menuId);
         Store store = getValidStore(menu);
         validateOwner(store, userId);
 
-        Option option = getValidOptionOfMenu(optionId, menuId);
+        Option option = menu.getOption(optionId);
         option.updateOption(requestDto.getOptionName());
 
+        menuRepository.save(menu);
         return OptionResponseDto.from(option);
     }
 
@@ -562,12 +334,13 @@ public class MenuService {
     @CacheEvict(value = "menus", allEntries = true)
     @Transactional
     public void deleteOption(UUID menuId, UUID optionId, Long userId, String email) {
-        Menu menu = getValidMenu(menuId);
+        Menu menu = getMenuForAdmin(menuId);
         Store store = getValidStore(menu);
         validateOwner(store, userId);
 
-        Option option = getValidOptionOfMenu(optionId, menuId);
+        Option option = menu.getOption(optionId);
         option.delete(email);
+
     }
 
     @CacheEvict(value = "menus", allEntries = true)
@@ -576,15 +349,18 @@ public class MenuService {
             OptionValueUpdateRequestDto requestDto,
             UUID menuId, UUID optionId, UUID optionValueId, Long userId
     ) {
-        Menu menu = getValidMenu(menuId);
+        Menu menu = getMenuForAdmin(menuId);
         Store store = getValidStore(menu);
         validateOwner(store, userId);
-        validateOptionInMenu(optionId, menuId);
 
-        OptionValue optionValue = getValidOptionValueOfOption(optionValueId, optionId);
+        Option option = menu.getOption(optionId);
+        OptionValue optionValue = option.getOptionValue(optionValueId);
         optionValue.updateOptionValue(
-                requestDto.getValue(), requestDto.getDescription(), requestDto.getAddPrice());
+                requestDto.getValue(),
+            requestDto.getDescription(),
+            requestDto.getAddPrice());
 
+        menuRepository.save(menu);
         return OptionValueResponseDto.from(optionValue);
     }
 
@@ -594,43 +370,46 @@ public class MenuService {
             UUID menuId, UUID optionId, UUID optionValueId, Long userId,
             String email
     ) {
-        Menu menu = getValidMenu(menuId);
+        Menu menu = getMenuForAdmin(menuId);
         Store store = getValidStore(menu);
         validateOwner(store, userId);
-        validateOptionInMenu(optionId, menuId);
-
-        OptionValue optionValue = getValidOptionValueOfOption(optionValueId, optionId);
+        Option option = menu.getOption(optionId);
+        OptionValue optionValue = option.getOptionValue(optionValueId);
         optionValue.delete(email);
+
+        menuRepository.save(menu);
+
     }
 
-    private Menu getValidMenu(UUID menuId) {
+    //=============================================================================
+    // Util method
+
+    public List<Menu> findAllById(List<UUID> menuIds) {
+        return menuRepository.findAllById(menuIds);
+    }
+
+    private Menu getMenuForAdmin(UUID menuId) {
         return menuRepository.findByIdAndDeletedAtIsNull(menuId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MENU_NOT_FOUND));
     }
 
+    private Menu getMenuForUser(UUID menuId) {
+        return menuRepository.findByIdAndActiveTrueAndHiddenFalseAndDeletedAtIsNull(menuId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.MENU_NOT_FOUND));
+    }
+
+    private Menu validateMenu(UUID menuId) {
+        return menuRepository.findById(menuId).orElseThrow(() -> new BusinessException(ErrorCode.MENU_NOT_FOUND));
+    }
+
     private Store getValidStore(Menu menu) {
         Store store = menu.getStore();
-        if (store.isDeleted()) {
+        if (store.isDeleted() || !store.getIsActive()) {
             throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
         }
         return store;
     }
 
-    private Option getValidOptionOfMenu(UUID optionId, UUID menuId) {
-        return optionRepository.findByIdAndMenuIdAndDeletedAtIsNull(optionId, menuId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.OPTION_NOT_FOUND));
-    }
-
-    private OptionValue getValidOptionValueOfOption(UUID optionValueId, UUID optionId) {
-        return optionValueRepository.findByIdAndOptionIdAndDeletedAtIsNull(optionValueId, optionId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.OPTION_VALUE_NOT_FOUND));
-    }
-
-    private void validateOptionInMenu(UUID optionId, UUID menuId) {
-        if (!optionRepository.existsByIdAndMenuIdAndDeletedAtIsNull(optionId, menuId)) {
-            throw new BusinessException(ErrorCode.OPTION_NOT_FOUND);
-        }
-    }
 
     private void validateOwner(Store store, Long userId) {
         if (!Objects.equals(store.getOwnerId(), userId)) {
@@ -638,7 +417,12 @@ public class MenuService {
         }
     }
 
-    public boolean checkAdminAuthorization(CustomUserDetails userDetails) {
+    private boolean isOwner(Store store, Long userId) {
+        return Objects.equals(store.getOwnerId(), userId);
+    }
+
+
+    public boolean isAdmin(CustomUserDetails userDetails) {
         UserRole userRole = userDetails.getRole();
         return userRole == UserRole.MASTER || userRole == UserRole.MANAGER;
     }
