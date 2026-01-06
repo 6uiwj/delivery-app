@@ -3,17 +3,24 @@ package com.sparta.foodorder.domain.menu.domain;
 import com.sparta.foodorder.global.common.BaseEntity;
 import com.sparta.foodorder.global.exception.BusinessException;
 import com.sparta.foodorder.global.exception.ErrorCode;
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import java.util.stream.Collectors;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
@@ -22,38 +29,33 @@ public class Option extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id")
+    @Column(name = "id", columnDefinition = "BINARY(16)")
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "menu_id", nullable = false)
+    @JoinColumn(name = "menu_id", nullable = false, columnDefinition = "BINARY(16)")
     private Menu menu;
 
     @OneToMany(mappedBy = "option", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<OptionValue> optionValues;
+    private List<OptionValue> optionValues = new ArrayList<>();
 
 
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Builder
-    public Option(String name,  List<OptionValue> optionValues) {
+    private Option(String name) {
         this.name = name;
-        this.optionValues = optionValues != null ? optionValues : new ArrayList<>();
-
     }
 
-    public static Option create(@NotBlank String optionName, List<OptionValue> optionValueList) {
-        return Option.builder()
-            .name(optionName)
-            .optionValues(optionValueList)
-            .build();
+    public static Option create(String optionName) {
+        return new Option(optionName);
+    }
+
+    public void setMenu(Menu menu) {
+        this.menu = menu;
     }
 
     public OptionValue addOptionValue(String value, Integer price, String description) {
-        if (optionValues == null) {
-            optionValues = new ArrayList<>();
-        }
 
         if (this.isDeleted()) {
             throw new BusinessException(ErrorCode.OPTION_NOT_FOUND);
@@ -65,6 +67,7 @@ public class Option extends BaseEntity {
         );
 
         this.optionValues.add(optionValue);
+        optionValue.setOption(this);
         return optionValue;
     }
 

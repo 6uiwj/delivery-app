@@ -53,7 +53,7 @@ public class Menu extends BaseEntity {
     @Column(name = "is_active")
     private boolean active = true;
 
-    @OneToMany(mappedBy = "menu", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "menu", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Option> options = new ArrayList<>();
 
     private Menu(String name, String description, Integer price, Store store,
@@ -79,10 +79,8 @@ public class Menu extends BaseEntity {
     }
 
     public Option addOption(Option option) {
-        if(options == null) {
-            options = new ArrayList<>();
-        }
         options.add(option);
+        option.setMenu(this);
         return option;
     }
 
@@ -107,12 +105,12 @@ public class Menu extends BaseEntity {
 
 
 
-    public void changeMenu(String name, String description, Integer price, boolean hidden, boolean active) {
+    public void changeMenu(String name, String description, Integer price, Boolean hidden, Boolean active) {
         if (name != null && !name.isBlank()) this.name = name;
         if (description != null) this.description = description;
         if (price != null) this.price = price;
-        this.hidden = hidden;
-        this.active = active;
+        if (hidden != null) this.hidden = hidden;
+        if (active != null) this.active = active;
     }
 
 
