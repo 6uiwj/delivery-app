@@ -17,6 +17,6 @@ public class MenuUpdateRequestDto {
 
     private Integer price;
 
-    private boolean hidden;
-    private boolean active;
+    private Boolean hidden;
+    private Boolean active;
 }

@@ -1,7 +1,6 @@
 package com.sparta.foodorder.domain.menu.presentation.dto.request;
 
 import com.sparta.foodorder.domain.menu.domain.Option;
-import com.sparta.foodorder.domain.menu.domain.OptionValue;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
@@ -20,15 +19,16 @@ public class OptionCreateRequestDto {
 
     public Option toEntity() {
 
-        List<OptionValue> optionValueList = optionValues.stream()
-            .map(dto -> OptionValue.create(
-                dto.getValue(), dto.getDescription(), dto.getAddPrice()))
-            .toList();
+        Option option = Option.create(this.optionName);
 
-        return Option.create(
-                this.optionName,
-                optionValueList
-        );
+        for (OptionValueCreateRequestDto dto : optionValues) {
+            option.addOptionValue(
+                dto.getValue(),
+                dto.getAddPrice(),
+                dto.getDescription()
+            );
+        }
+
+        return option;
     }
-
 }

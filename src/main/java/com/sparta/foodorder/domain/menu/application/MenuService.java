@@ -56,7 +56,7 @@ public class MenuService {
 
         //생성 권한 확인
         if(!isAdmin && !isOwner(store, userId)) {
-            log.info("생성권한 없음(가게오너, MANAGER, MASTER가 아님");
+            log.info("생성권한 없음(가게오너, MANAGER, MASTER가 아님)");
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
 
@@ -80,12 +80,11 @@ public class MenuService {
 
         //생성 권한 확인
         if(!isAdmin && !isOwner(store, userId)) {
-            log.info("생성권한 없음(가게오너, MANAGER, MASTER가 아님");
+            log.info("생성권한 없음(가게오너, MANAGER, MASTER가 아님)");
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
 
         getValidStore(menu);
-
         return saveOption(menu, requestDto);
     }
 
@@ -248,7 +247,7 @@ public class MenuService {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
 
-        if(requestDto.getStoreId() == null) {
+        if(admin && requestDto.getStoreId() == null) {
             throw new BusinessException(ErrorCode.MISSING_INPUT_VALUE);
         }
 
@@ -256,8 +255,8 @@ public class MenuService {
                     requestDto.getName(),
                     requestDto.getDescription(),
                     requestDto.getPrice(),
-                    requestDto.isHidden(),
-                    requestDto.isActive()
+                    requestDto.getHidden(),
+                    requestDto.getActive()
             );
             Menu savedMenu = menuRepository.save(menu);
             return MenuResponseDto.from(savedMenu);
@@ -429,7 +428,7 @@ public class MenuService {
 
     private MenuResponseDto saveOption(Menu menu, OptionCreateRequestDto requestDto) {
         Option option = requestDto.toEntity();
-        menu.getOptions().add(option);
+        menu.addOption(option);
         menuRepository.saveAndFlush(menu);
         return MenuResponseDto.from(menu);
     }
