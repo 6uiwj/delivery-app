@@ -32,7 +32,7 @@ public class MenuResponseDto implements Serializable {
 
     }
 
-    public static MenuResponseDto from(Menu menu) {
+    public static MenuResponseDto from(Menu menu, boolean showAll) {
         return new MenuResponseDto(
                 menu.getId(),
                 menu.getName(),
@@ -41,8 +41,11 @@ public class MenuResponseDto implements Serializable {
                 menu.isHidden(),
                 menu.isActive(),
                 menu.getStore().getId(),
-                OptionResponseDto.findAllOptions(menu.getOptions())
+                OptionResponseDto.findAllOptions(menu.getOptions(), showAll)
 
         );
+    }
+    public static MenuResponseDto from(Menu menu) {
+        return from(menu, false);
     }
 }

@@ -11,8 +11,21 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface MenuJpaRepository extends JpaRepository<Menu, UUID> {
+    @Query("""
+        SELECT DISTINCT m
+        FROM Menu m
+        LEFT JOIN FETCH m.options
+        WHERE m.store.id = :storeId
+    """)
     List<Menu> findByStoreId(UUID storeId);
-  
+
+    @Query("""
+        SELECT DISTINCT m
+        FROM Menu m
+        LEFT JOIN FETCH m.options
+        WHERE m.store.id = :storeId
+        AND m.deletedAt IS NULL
+    """)
     List<Menu> findByStoreIdAndDeletedAtIsNull(UUID storeId);
   
     List<Menu> findByStoreIdAndActiveTrueAndHiddenFalse(UUID storeId);

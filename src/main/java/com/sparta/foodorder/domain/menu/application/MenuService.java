@@ -125,22 +125,27 @@ public class MenuService {
     public List<MenuResponseDto> getMenus(CustomUserDetails userDetails, UUID storeId) {
         Long userId = userDetails.getUserId();
         UserRole userRole = userDetails.getRole();
-        Store store = storeService.findByUUID(storeId);
+        Store checkStore = storeService.findByUUID(storeId);
+
+        boolean admin = isAdmin(userDetails);
+        boolean owner = isOwner(checkStore, userId);
+        boolean showAll = admin || owner;
         List<Menu> menu;
+
 
         if(userRole == UserRole.MANAGER||userRole == UserRole.MASTER) {
             log.info("관리자 메뉴조회");
             menu = menuRepository.findByStoreId(storeId);
 
-        } else if(userRole == UserRole.USER || !store.getOwnerId().equals(userId)) {
+        } else if(userRole == UserRole.USER || !checkStore.getOwnerId().equals(userId)) {
             log.info("User와 다른가게 사장 조회");
-            if (!store.getIsActive() || store.isDeleted()) {
+            if (!checkStore.getIsActive() || checkStore.isDeleted()) {
                 throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
             }
             menu = menuRepository.findByStoreIdAndActiveTrueAndHiddenFalseAndDeletedAtIsNull(storeId);
         } else {
             log.info("Owner 조회 ");
-            if (store.isDeleted()) {
+            if (checkStore.isDeleted()) {
                 throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
             }
             menu = menuRepository.findByStoreIdAndDeletedAtIsNull(storeId);
@@ -151,7 +156,10 @@ public class MenuService {
             return Collections.emptyList();
         }
 
-        return menu.stream().map(MenuResponseDto::from).toList();
+        return menu.stream()
+            .map(m -> MenuResponseDto.from(m, showAll))
+            .toList();
+
     }
 
 
