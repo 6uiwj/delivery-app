@@ -47,13 +47,19 @@ public class OptionResponseDto implements Serializable {
                 .toList());
     }
     public static OptionResponseDto from(Option option) {
-        return fromActive(option);
+        return fromAll(option);
+    }
+
+    public static List<OptionResponseDto> findAllOptions(List<Option> options, boolean showAll) {
+        return options.stream()
+            .filter(Objects::nonNull)
+            .map(option -> showAll
+                ? OptionResponseDto.fromAll(option)
+                : OptionResponseDto.fromActive(option))
+            .toList();
     }
 
     public static List<OptionResponseDto> findAllOptions(List<Option> options) {
-        return options.stream()
-                .filter(Objects::nonNull)
-                .map(option -> OptionResponseDto.from(option))
-                .toList();
+        return findAllOptions(options, false);
     }
 }
