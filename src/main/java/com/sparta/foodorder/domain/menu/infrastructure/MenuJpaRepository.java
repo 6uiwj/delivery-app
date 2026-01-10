@@ -32,4 +32,12 @@ public interface MenuJpaRepository extends JpaRepository<Menu, UUID> {
     Page<Menu> findByNameContaining(String searchString, Pageable pageable);
 
     Optional<Menu> findByIdAndActiveTrueAndHiddenFalseAndDeletedAtIsNull(UUID menuId);
+
+    @Query("""
+    SELECT DISTINCT m
+    FROM Menu m
+    LEFT JOIN FETCH m.options o
+    WHERE m.id = :menuId
+""")
+    Optional<Menu> findByIdWithOptions(UUID menuId);
 }

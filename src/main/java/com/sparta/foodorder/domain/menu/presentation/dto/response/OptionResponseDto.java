@@ -25,19 +25,35 @@ public class OptionResponseDto implements Serializable {
     }
 
 
-    public static OptionResponseDto from(Option option) {
+    public static OptionResponseDto fromAll(Option option) {
+
         return new OptionResponseDto(
                 option.getId(),
                 option.getName(),
                 option.getMenu().getId(),
-                OptionValueResponseDto.findAllOptionValues(option.getOptionValues())
-        );
+                option.getOptionValues().stream()
+                    .map(OptionValueResponseDto::from)
+                    .toList());
+    }
+
+    public static OptionResponseDto fromActive(Option option) {
+
+        return new OptionResponseDto(
+            option.getId(),
+            option.getName(),
+            option.getMenu().getId(),
+            option.getActiveOptionValues().stream()
+                .map(OptionValueResponseDto::from)
+                .toList());
+    }
+    public static OptionResponseDto from(Option option) {
+        return fromActive(option);
     }
 
     public static List<OptionResponseDto> findAllOptions(List<Option> options) {
         return options.stream()
                 .filter(Objects::nonNull)
-                .map(OptionResponseDto::from)
+                .map(option -> OptionResponseDto.from(option))
                 .toList();
     }
 }
