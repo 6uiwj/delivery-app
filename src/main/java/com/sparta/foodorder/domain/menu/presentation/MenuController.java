@@ -105,6 +105,25 @@ public class MenuController implements MenuApiDocs {
     }
 
 
+    @GetMapping("/{menuId}/options")
+    public ResponseEntity<List<OptionResponseDto>> getOptions(@PathVariable UUID menuId,
+        @AuthenticationPrincipal CustomUserDetails userDetails) {
+        log.info(" 컨트롤러 유입 {}", menuId);
+        List<OptionResponseDto> optionResponseDtoList = menuService.getOptions(menuId, userDetails);
+
+        return ResponseEntity.ok(optionResponseDtoList);
+    }
+
+    //TODO: 단일 option에 대한 value들 조회
+    @GetMapping("/{menuId}/options/{optionId}")
+    public ResponseEntity<List<OptionValueResponseDto>> getOptionValues(@PathVariable UUID menuId,
+        @PathVariable UUID optionId,
+        @AuthenticationPrincipal CustomUserDetails userDetails) {
+        List<OptionValueResponseDto> optionValueResponseDtoList = menuService.getOptionValues(
+            menuId, optionId, userDetails);
+        return ResponseEntity.ok(optionValueResponseDtoList);
+    }
+
 
     //메뉴 수정시 관리자는 요청에 storeId를 명시해야함!!
     @Operation(summary = "메뉴 수정", description = "해당 가게의 특정 메뉴를 수정합니다.")

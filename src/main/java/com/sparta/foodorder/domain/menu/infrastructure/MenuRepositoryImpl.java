@@ -73,4 +73,11 @@ public class MenuRepositoryImpl implements MenuRepository {
     public Optional<Menu> findByIdAndActiveTrueAndHiddenFalseAndDeletedAtIsNull(UUID menuId) {
         return menuJpaRepository.findByIdAndActiveTrueAndHiddenFalseAndDeletedAtIsNull(menuId);
     }
+
+    @Override
+    public Optional<Menu> findByIdWithOptions(UUID menuId) {
+        return menuJpaRepository.findByIdWithOptions(menuId);
+    }
+
+
 }

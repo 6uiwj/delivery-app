@@ -32,4 +32,7 @@ public interface MenuRepository {
     Optional<Menu> findByIdAndDeletedAtIsNull(UUID menuId);
 
     Optional<Menu> findByIdAndActiveTrueAndHiddenFalseAndDeletedAtIsNull(UUID menuId);
+
+    Optional<Menu> findByIdWithOptions(UUID menuId);
+
 }

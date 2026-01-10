@@ -195,6 +195,50 @@ public class MenuService {
     }
 
 
+    @Transactional(readOnly = true)
+    public List<OptionResponseDto> getOptions(UUID menuId, CustomUserDetails userDetails) {
+        Long userId = userDetails.getUserId();
+
+        //메뉴 존재 검증
+        Menu menu = menuRepository.findByIdWithOptions(menuId).orElseThrow(() -> new BusinessException(ErrorCode.MENU_NOT_FOUND));
+        Store checkStore = menu.getStore();
+
+        boolean admin = isAdmin(userDetails);
+        boolean owner = isOwner(checkStore, userId);
+        boolean showAll = admin || owner;
+
+        List<Option> optionList = showAll
+                ? menu.getOptions()
+                : menu.getActiveOptions();
+
+        return optionList.stream().map(
+            option -> showAll ? OptionResponseDto.fromAll(option)
+    : OptionResponseDto.fromActive(option))
+            .toList();
+    }
+
+
+    public List<OptionValueResponseDto> getOptionValues(UUID menuId, UUID optionId, CustomUserDetails userDetails) {
+        Long userId = userDetails.getUserId();
+
+        // 1. 메뉴 존재 여부
+        Menu menu = validateMenu(menuId);
+        Option option = menu.getOption(optionId);
+
+        Store checkStore = menu.getStore();
+        getValidStore(menu);
+
+        // 2. 권한 확인
+        boolean owner = isOwner(checkStore, userId);
+        boolean admin = isAdmin(userDetails);
+
+        List<OptionValue> optionValueList = owner||admin ?
+            option.getOptionValues() : option.getActiveOptionValues();
+
+        return optionValueList.stream().map(OptionValueResponseDto::from).toList();
+
+    }
+
     @CacheEvict(value = "menus", key = "#storeId + '*'")
     public MenuResponseDto updateMenu(UUID menuId, @Valid MenuUpdateRequestDto requestDto, CustomUserDetails userDetails) {
 
