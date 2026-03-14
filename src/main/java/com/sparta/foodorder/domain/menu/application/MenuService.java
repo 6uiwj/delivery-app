@@ -22,10 +22,9 @@ import com.sparta.foodorder.global.dto.PagedResponse;
 import com.sparta.foodorder.global.exception.BusinessException;
 import com.sparta.foodorder.global.exception.ErrorCode;
 import jakarta.validation.Valid;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+
+import java.util.*;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -130,7 +129,7 @@ public class MenuService {
         boolean admin = isAdmin(userDetails);
         boolean owner = isOwner(checkStore, userId);
         boolean showAll = admin || owner;
-        List<Menu> menu;
+        Set<Menu> menu;
 
 
         if(userRole == UserRole.MANAGER||userRole == UserRole.MASTER) {
@@ -215,7 +214,7 @@ public class MenuService {
         boolean owner = isOwner(checkStore, userId);
         boolean showAll = admin || owner;
 
-        List<Option> optionList = showAll
+        Set<Option> optionList = showAll
                 ? menu.getOptions()
                 : menu.getActiveOptions();
 
@@ -240,7 +239,7 @@ public class MenuService {
         boolean owner = isOwner(checkStore, userId);
         boolean admin = isAdmin(userDetails);
 
-        List<OptionValue> optionValueList = owner||admin ?
+        Set<OptionValue> optionValueList = owner||admin ?
             option.getOptionValues() : option.getActiveOptionValues();
 
         return optionValueList.stream().map(OptionValueResponseDto::from).toList();
@@ -396,7 +395,7 @@ public class MenuService {
     //=============================================================================
     // Util method
 
-    public List<Menu> findAllById(List<UUID> menuIds) {
+    public Set<Menu> findAllById(List<UUID> menuIds) {
         return menuRepository.findAllById(menuIds);
     }
 

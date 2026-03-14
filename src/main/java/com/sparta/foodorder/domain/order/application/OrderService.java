@@ -52,7 +52,7 @@ public class OrderService {
     @Transactional
     public UUID createOrder(CreateOrderRequestDto dto, Long userId) {
         storeService.validateExistenceById(dto.storeId());
-        List<Menu> menus = menuService.findAllById(dto.getMenuIds());
+        Set<Menu> menus = menuService.findAllById(dto.getMenuIds());
         Map<UUID, Menu> menuMap = menus.stream().collect(Collectors.toMap(Menu::getId, m -> m));
 
         // Order 저장

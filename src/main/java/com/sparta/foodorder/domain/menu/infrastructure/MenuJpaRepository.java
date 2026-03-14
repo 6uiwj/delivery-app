@@ -3,6 +3,7 @@ package com.sparta.foodorder.domain.menu.infrastructure;
 import com.sparta.foodorder.domain.menu.domain.Menu;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -11,13 +12,15 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface MenuJpaRepository extends JpaRepository<Menu, UUID> {
+    Set<Menu> findAllByIdIn(List<UUID> ids);
+
     @Query("""
         SELECT DISTINCT m
         FROM Menu m
         LEFT JOIN FETCH m.options
         WHERE m.store.id = :storeId
     """)
-    List<Menu> findByStoreId(UUID storeId);
+    Set<Menu> findByStoreId(UUID storeId);
 
     @Query("""
         SELECT DISTINCT m
@@ -26,9 +29,9 @@ public interface MenuJpaRepository extends JpaRepository<Menu, UUID> {
         WHERE m.store.id = :storeId
         AND m.deletedAt IS NULL
     """)
-    List<Menu> findByStoreIdAndDeletedAtIsNull(UUID storeId);
+    Set<Menu> findByStoreIdAndDeletedAtIsNull(UUID storeId);
   
-    List<Menu> findByStoreIdAndActiveTrueAndHiddenFalse(UUID storeId);
+    Set<Menu> findByStoreIdAndActiveTrueAndHiddenFalse(UUID storeId);
 
 
     @Query("SELECT DISTINCT m FROM Menu m " +
@@ -38,7 +41,7 @@ public interface MenuJpaRepository extends JpaRepository<Menu, UUID> {
         "AND m.active = true " +
         "AND m.hidden = false " +
         "AND m.deletedAt IS NULL")
-    List<Menu> findByStoreIdAndActiveTrueAndHiddenFalseAndDeletedAtIsNull(@Param("storeId")UUID storeId);
+    Set<Menu> findByStoreIdAndActiveTrueAndHiddenFalseAndDeletedAtIsNull(@Param("storeId")UUID storeId);
   
     Optional<Menu> findByIdAndDeletedAtIsNull(UUID menuId);
   

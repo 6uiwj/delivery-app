@@ -14,9 +14,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+
+import java.util.*;
 import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -40,7 +39,7 @@ public class Option extends BaseEntity {
 
     @OneToMany(mappedBy = "option", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @BatchSize(size = 100)
-    private List<OptionValue> optionValues = new ArrayList<>();
+    private Set<OptionValue> optionValues = new HashSet<>();
 
 
     @Column(name = "name", nullable = false)
@@ -81,10 +80,10 @@ public class Option extends BaseEntity {
             .orElseThrow(() -> new BusinessException(ErrorCode.OPTION_VALUE_NOT_FOUND));
     }
 
-    public List<OptionValue> getActiveOptionValues() {
+    public Set<OptionValue> getActiveOptionValues() {
         return this.optionValues.stream()
             .filter(v -> !v.isDeleted())
-            .collect(Collectors.toList());
+            .collect(Collectors.toSet());
     }
 
     public void updateOption(String name) {

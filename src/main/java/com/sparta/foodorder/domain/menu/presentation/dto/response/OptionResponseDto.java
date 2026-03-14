@@ -4,6 +4,7 @@ import com.sparta.foodorder.domain.menu.domain.Option;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import lombok.Getter;
 
@@ -50,7 +51,7 @@ public class OptionResponseDto implements Serializable {
         return fromAll(option);
     }
 
-    public static List<OptionResponseDto> findAllOptions(List<Option> options, boolean showAll) {
+    public static List<OptionResponseDto> findAllOptions(Set<Option> options, boolean showAll) {
         return options.stream()
             .filter(Objects::nonNull)
             .map(option -> showAll
@@ -59,7 +60,7 @@ public class OptionResponseDto implements Serializable {
             .toList();
     }
 
-    public static List<OptionResponseDto> findAllOptions(List<Option> options) {
+    public static List<OptionResponseDto> findAllOptions(Set<Option> options) {
         return findAllOptions(options, false);
     }
 }

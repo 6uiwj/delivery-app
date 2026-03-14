@@ -8,6 +8,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -48,7 +49,7 @@ public class MenuCreateRequestDto {
                 store,
                 this.hidden,
                 this.active,
-                new ArrayList<>()
+                new HashSet<>()
         );
 
            for(OptionCreateRequestDto dto : options) {

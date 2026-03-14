@@ -15,9 +15,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+
+import java.util.*;
 import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -54,7 +53,7 @@ public class Menu extends BaseEntity {
     private boolean active = true;
 
     @OneToMany(mappedBy = "menu", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Option> options = new ArrayList<>();
+    private Set<Option> options = new HashSet<>();
 
     private Menu(String name, String description, Integer price, Store store,
                  boolean hidden, boolean active) {
@@ -69,7 +68,7 @@ public class Menu extends BaseEntity {
 
     public static Menu create(String name, String description, Integer price,
                               Store store, boolean hidden, boolean active,
-                              List<Option> options) {
+                              Set<Option> options) {
         Menu menu = new Menu(name, description, price, store, hidden, active);
         for(Option option : options) {
             menu.addOption(option);
@@ -97,10 +96,10 @@ public class Menu extends BaseEntity {
             .orElseThrow(() -> new BusinessException(ErrorCode.OPTION_NOT_FOUND));
     }
 
-    public List<Option> getActiveOptions() {
+    public Set<Option> getActiveOptions() {
         return this.options.stream()
             .filter(option -> !option.isDeleted())
-            .collect(Collectors.toList());
+            .collect(Collectors.toSet());
     }
 
 

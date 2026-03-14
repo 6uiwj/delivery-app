@@ -4,6 +4,7 @@ import com.sparta.foodorder.domain.menu.domain.Menu;
 import com.sparta.foodorder.domain.menu.domain.MenuRepository;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -19,7 +20,7 @@ public class MenuRepositoryImpl implements MenuRepository {
     private final MenuJpaRepository menuJpaRepository;
 
     @Override
-    public List<Menu> findByStoreId(UUID storeId) {
+    public Set<Menu> findByStoreId(UUID storeId) {
         return menuJpaRepository.findByStoreId(storeId);
     }
 
@@ -44,20 +45,20 @@ public class MenuRepositoryImpl implements MenuRepository {
     }
 
     @Override
-    public List<Menu> findByStoreIdAndActiveTrueAndHiddenFalseAndDeletedAtIsNull(@Param("storeId")UUID storeId) {
+    public Set<Menu> findByStoreIdAndActiveTrueAndHiddenFalseAndDeletedAtIsNull(@Param("storeId")UUID storeId) {
         return menuJpaRepository.findByStoreIdAndActiveTrueAndHiddenFalseAndDeletedAtIsNull(
                 storeId);
     }
 
     @Override
-    public List<Menu> findByStoreIdAndDeletedAtIsNull(UUID storeId) {
+    public Set<Menu> findByStoreIdAndDeletedAtIsNull(UUID storeId) {
         return menuJpaRepository.findByStoreIdAndDeletedAtIsNull(storeId);
     }
 
 
     @Override
-    public List<Menu> findAllById(List<UUID> menuIds) {
-        return menuJpaRepository.findAllById(menuIds);
+    public Set<Menu> findAllById(List<UUID> menuIds) {
+        return menuJpaRepository.findAllByIdIn(menuIds);
     }
 
     @Override
